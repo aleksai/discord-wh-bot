@@ -112,9 +112,9 @@ function search(forString, channelID) {
                         if(hole.maxJumpMass < 20000000) {
                             message += ", Frigate-Destroyer Max";
                         } else if(hole.maxJumpMass < 300000000) {
-                            message += ", Battle-Cruiser Max";
+                            message += ", Battlecruiser Max";
                         } else if(hole.maxJumpMass < 1000000000) {
-                            message += ", Battle-Ship Max";
+                            message += ", Battleship Max";
                         } else {
                             message += ", Capital hole";
                         }
@@ -156,7 +156,7 @@ function search(forString, channelID) {
                             if(rows[i].maxJumpMass < 20000000) {
                                 size = "Frigate-Destroyer Max";
                             } else if(rows[i].maxJumpMass < 300000000) {
-                                size = "Battle-Cruiser Max";
+                                size = "Battlecruiser Max";
                             }
 
                             switch(rows[i].in_class) {
