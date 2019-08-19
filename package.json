@@ -1,0 +1,12 @@
+{
+	"name": "wh-bot",
+	"version": "1.0.0",
+	"description": "WHBot",
+	"main": "bot.js",
+	"author": "Alek Sai",
+	"dependencies": {
+		"discord.io": "github:woor/discord.io#gateway_v6",
+		"sqlite3": "^4.1.0",
+		"winston": "^3.2.1"
+	}
+}
