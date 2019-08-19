@@ -33,141 +33,146 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 search(args, channelID);
             break;
          }
-    } else if(userID !== "612975282936086543") {
+    } else if(userID !== auth.user) {
         var args = message.split(' ');
 
-        search(args, channelID);
+        var sysId = message.match(/\/\/([0-9]{8})">/g);
+        if(sysId && sysId.length) sysId = sysId[0].match(/[0-9]{8}/g);
+
+        if(sysId) {
+            search(sysId, channelID);
+        } else if(args.length) {
+            search(args[0], channelID);
+        }
     }
 });
 
-function search(args, channelID) {
-    if(args.length) {
-        var wh = args[0].toString().toUpperCase();
-        var mode = "NAN";
-        var holeunclear = false;
+function search(forString, channelID) {
+    var wh = forString.toString().toUpperCase();
+    var mode = "NAN";
+    var whid = false;
+    var holeunclear = false;
 
-        console.log(wh);
+    if(/^[A-Z]{1}\d{3}$/.test(wh)) {
+        mode = "HOLE";
+    } else if(/^\d{3}$/.test(wh)) {
+        mode = "HOLE";
+        holeunclear = true;
+    } else if(/^[J]{1}\d{6}$/.test(wh)) {
+        mode = "SYS";
+    } else if(/^\d{6}$/.test(wh)) {
+        mode = "SYS";
+        wh = "J" + wh;
+    } else if(/^\d{8}$/.test(wh)) {
+        mode = "SYS";
+        whid = true;
+    }
 
-        if(/^[A-Z]{1}\d{3}$/.test(wh)) {
-            mode = "HOLE";
-        } else if(/^\d{3}$/.test(wh)) {
-            mode = "HOLE";
-            holeunclear = true;
-        } else if(/^[J]{1}\d{6}$/.test(wh)) {
-            mode = "SYS";
-        } else if(/^\d{6}$/.test(wh)) {
-            mode = "SYS";
-            wh = "J" + wh;
-        }
+    switch(mode) {
+        case "HOLE":
+            db.serialize(() => {
+              db.all('SELECT hole, in_class, maxJumpMass, maxStableTime, maxStableMass, massRegeneration FROM holes WHERE ' + (holeunclear ? ('hole LIKE "%' + wh + '"') : ('hole = "' + wh + '"')), (err, rows) => {
+                if (err || rows.length === 0) {
+                    bot.sendMessage({ to: channelID, message: 'Not found' });
+                } else {
+                    for (var i = 0; i < rows.length; i++) {
+                        var hole = rows[i];
 
-        switch(mode) {
-            case "HOLE":
-                db.serialize(() => {
-                  db.all('SELECT hole, in_class, maxJumpMass, maxStableTime, maxStableMass, massRegeneration FROM holes WHERE ' + (holeunclear ? ('hole LIKE "%' + wh + '"') : ('hole = "' + wh + '"')), (err, rows) => {
-                    if (err || rows.length === 0) {
-                        bot.sendMessage({ to: channelID, message: 'Не найдено' });
-                    } else {
+                        var message = "Hole **" + hole.hole + "**\n\n";
+
+                        switch(hole.in_class) {
+                            case 7:
+                                message += "```css\n" + rows[i].hole + "(High)\n```";
+                            break;
+                            case 8:
+                                message += "```fix\n" + rows[i].hole + "(Low)\n```";
+                            break;
+                            case 9:
+                                message += "```excel\n" + rows[i].hole + "(Nullsec)\n```";
+                            break;
+                            case 12:
+                                message += "```ini\n" + rows[i].hole + "(Thera)\n```";
+                            break;
+                            default:
+                                message += "```ini\n" + rows[i].hole + "(C" + rows[i].in_class + ")\n```";
+                            break;
+                        }
+
+                        message += "\nTime: **" + (hole.maxStableTime/60) + " h**";
+                        message += "\nMass: **" + hole.maxStableMass.toLocaleString('ru') + " kg**";
+                        message += "\nJump Mass: **" + hole.maxJumpMass.toLocaleString('ru') + " kg";
+
+                        if(hole.maxJumpMass < 20000000) {
+                            message += ", Frigate-Destroyer Max";
+                        } else if(hole.maxJumpMass < 300000000) {
+                            message += ", Battle-Cruiser Max";
+                        } else if(hole.maxJumpMass < 1000000000) {
+                            message += ", Battle-Ship Max";
+                        } else {
+                            message += ", Capital hole";
+                        }
+
+                        message += "**";
+
+                        if(hole.massRegeneration) message += "\nMass regen: **" + hole.massRegeneration.toLocaleString('ru') + " kg**";
+
+                        bot.sendMessage({ to: channelID, message: message + "\n" });
+                    }
+                }
+              });
+            });
+        break;
+        case "SYS":
+            db.serialize(() => {
+              db.all('SELECT system, class, effect, statics FROM wormholes WHERE ' + (whid ? 'solarsystemid = "' + wh + '"' : 'system = "' + wh + '"'), (err, rows) => {
+                if (err || rows.length === 0) {
+                    bot.sendMessage({ to: channelID, message: 'Not found' });
+                } else {
+                    var system = rows[0];
+                    var statics = system.statics.split(",");
+
+                    var statics_query = '';
+
+                    for (var i = 0; i < statics.length; i++) {
+                        statics_query += (statics_query.length > 0 ? ' OR ' : '') + 'hole = "' + statics[i] + '"';
+                    }
+
+                    db.all('SELECT hole, in_class, maxJumpMass FROM holes WHERE ' + statics_query, (err, rows) => {
+                        var message = "System **" + system.system + "**\n\nClass: **C" + system.class + "**\nEffect: **" + (system.effect ? system.effect : "No") + "**\n\n";
+
                         for (var i = 0; i < rows.length; i++) {
-                            var hole = rows[i];
-
-                            var message = "Дыра " + hole.hole + "\n\nКласс: ";
-
-                            switch(hole.in_class) {
+                            switch(rows[i].in_class) {
                                 case 7:
-                                    message += "H";
+                                    message += "```css\n" + rows[i].hole + "(High";
                                 break;
                                 case 8:
-                                    message += "L";
+                                    message += "```fix\n" + rows[i].hole + "(Low";
                                 break;
                                 case 9:
-                                    message += "N";
+                                    message += "```excel\n" + rows[i].hole + "(Nullsec";
                                 break;
                                 case 12:
-                                    message += "Thera";
+                                    message += "```ini\n" + rows[i].hole + "(Thera";
                                 break;
                                 default:
-                                    message += "C" + hole.in_class;
+                                    message += "```ini\n" + rows[i].hole + "(C" + rows[i].in_class;
                                 break;
                             }
 
-                            message += "\nВремя: " + (hole.maxStableTime/60) + " ч";
-                            message += "\nМасса: " + hole.maxStableMass.toLocaleString('ru') + " кг";
-                            message += "\nМасса для прыжка: " + hole.maxJumpMass.toLocaleString('ru') + " кг";
-
-                            if(hole.maxJumpMass < 20000000) {
-                                message += ", Фригатка";
-                            } else if(hole.maxJumpMass < 300000000) {
-                                message += ", БК";
-                            } else if(hole.maxJumpMass < 1000000000) {
-                                message += ", БШ";
-                            } else {
-                                message += ", Капитальная";
+                            if(rows[i].maxJumpMass < 20000000) {
+                                message += ", Frigate-Destroyer Max";
+                            } else if(rows[i].maxJumpMass < 300000000) {
+                                message += ", Battle-Cruiser Max";
                             }
 
-                            if(hole.massRegeneration) message += "\nРеген массы: " + hole.massRegeneration.toLocaleString('ru') + " кг";
-
-                            bot.sendMessage({ to: channelID, message: message });
-                        }
-                    }
-                  });
-                });
-            break;
-            case "SYS":
-                db.serialize(() => {
-                  db.all('SELECT class, effect, statics FROM wormholes WHERE system = "' + wh + '"', (err, rows) => {
-                    if (err || rows.length === 0) {
-                        bot.sendMessage({ to: channelID, message: 'Не найдено' });
-                    } else {
-                        var system = rows[0];
-                        var statics = system.statics.split(",");
-
-                        var statics_query = '';
-
-                        for (var i = 0; i < statics.length; i++) {
-                            statics_query += (statics_query.length > 0 ? ' OR ' : '') + 'hole = "' + statics[i] + '"';
+                            message += ")\n```";
                         }
 
-                        db.all('SELECT hole, in_class, maxJumpMass FROM holes WHERE ' + statics_query, (err, rows) => {
-                            var statics = "";
-
-                            for (var i = 0; i < rows.length; i++) {
-                                statics += (statics.length > 0 ? ', ' : '');
-
-                                switch(rows[i].in_class) {
-                                    case 7:
-                                        statics += rows[i].hole + "(H";
-                                    break;
-                                    case 8:
-                                        statics += rows[i].hole + "(L";
-                                    break;
-                                    case 9:
-                                        statics += rows[i].hole + "(N";
-                                    break;
-                                    case 12:
-                                        statics += rows[i].hole + "(Thera";
-                                    break;
-                                    default:
-                                        statics += rows[i].hole + "(C" + rows[i].in_class;
-                                    break;
-                                }
-
-                                if(rows[i].maxJumpMass < 20000000) {
-                                    statics += ", Фригатка";
-                                } else if(rows[i].maxJumpMass < 300000000) {
-                                    statics += ", БК";
-                                }
-
-                                statics += ")";
-                            }
-
-                            bot.sendMessage({ to: channelID, message: "Система " + wh + "\n\nКласс: C" + system.class + "\nЭффект: " + (system.effect ? system.effect : "Нет") + "\nСтатики: " + statics });
-                        });
-                    }
-                  });
-                });
-            break;
-        }
-    } else {
-        bot.sendMessage({ to: channelID, message: 'Введите систему или дыру для поиска' });
+                        bot.sendMessage({ to: channelID, message: message + "\n" });
+                    });
+                }
+              });
+            });
+        break;
     }
 }
