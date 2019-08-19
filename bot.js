@@ -154,7 +154,7 @@ function search(args, channelID) {
                                 if(rows[i].maxJumpMass < 20000000) {
                                     statics += ", Фригатка";
                                 } else if(rows[i].maxJumpMass < 300000000) {
-                                    message += ", БК";
+                                    statics += ", БК";
                                 }
 
                                 statics += ")";
