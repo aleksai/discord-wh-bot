@@ -27,7 +27,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         args = args.splice(1);
         switch(cmd) {
             case 'ping':
-                bot.sendMessage({ to: channelID, message: 'Pong!' });
+                bot.sendMessage({ to: channelID, embed: { title: "Pong", color: 0xffffff } });
             break;
             case 'wh':
                 search(args, channelID);
@@ -78,27 +78,34 @@ function search(forString, channelID) {
                     for (var i = 0; i < rows.length; i++) {
                         var hole = rows[i];
 
-                        var message = "Hole **" + hole.hole + "**\n\n";
+                        var message = "";
+                        var title = "Hole **" + hole.hole + "** ";
+                        var color = 0x000000;
 
                         switch(hole.in_class) {
                             case 7:
-                                message += "```css\n" + rows[i].hole + "(High)\n```";
+                                title += "High";
+                                color = 0x00ff00;
                             break;
                             case 8:
-                                message += "```fix\n" + rows[i].hole + "(Low)\n```";
+                                title += "Low";
+                                color = 0xdfca1c;
                             break;
                             case 9:
-                                message += "```excel\n" + rows[i].hole + "(Nullsec)\n```";
+                                title += "Nullsec";
+                                color = 0xff0000;
                             break;
                             case 12:
-                                message += "```ini\n" + rows[i].hole + "(Thera)\n```";
+                                title += "Thera";
+                                color = 0x0000ff;
                             break;
                             default:
-                                message += "```ini\n" + rows[i].hole + "(C" + rows[i].in_class + ")\n```";
+                                title += "C" + rows[i].in_class;
+                                color = 0xffffff;
                             break;
                         }
 
-                        message += "\nTime: **" + (hole.maxStableTime/60) + " h**";
+                        message += "\n\nTime: **" + (hole.maxStableTime/60) + " h**";
                         message += "\nMass: **" + hole.maxStableMass.toLocaleString('ru') + " kg**";
                         message += "\nJump Mass: **" + hole.maxJumpMass.toLocaleString('ru') + " kg";
 
@@ -116,7 +123,7 @@ function search(forString, channelID) {
 
                         if(hole.massRegeneration) message += "\nMass regen: **" + hole.massRegeneration.toLocaleString('ru') + " kg**";
 
-                        bot.sendMessage({ to: channelID, message: message + "\n" });
+                        bot.sendMessage({ to: channelID, embed: { title: title, color: color, description: message } });
                     }
                 }
               });
@@ -138,37 +145,46 @@ function search(forString, channelID) {
                     }
 
                     db.all('SELECT hole, in_class, maxJumpMass FROM holes WHERE ' + statics_query, (err, rows) => {
-                        var message = "System **" + system.system + "**\n\nClass: **C" + system.class + "**\nEffect: **" + (system.effect ? system.effect : "No") + "**\n\n";
+                        var message = "Class: **C" + system.class + "**\nEffect: **" + (system.effect ? system.effect : "No") + "**\n\n";
+                        var title ="System " + (system.system === "J225128" ? ":crown: " : "") + "**" + system.system + "**";
+
+                        var embeds = [];
 
                         for (var i = 0; i < rows.length; i++) {
-                            switch(rows[i].in_class) {
-                                case 7:
-                                    message += "```css\n" + rows[i].hole + "(High";
-                                break;
-                                case 8:
-                                    message += "```fix\n" + rows[i].hole + "(Low";
-                                break;
-                                case 9:
-                                    message += "```excel\n" + rows[i].hole + "(Nullsec";
-                                break;
-                                case 12:
-                                    message += "```ini\n" + rows[i].hole + "(Thera";
-                                break;
-                                default:
-                                    message += "```ini\n" + rows[i].hole + "(C" + rows[i].in_class;
-                                break;
-                            }
+                            var size = null;
 
                             if(rows[i].maxJumpMass < 20000000) {
-                                message += ", Frigate-Destroyer Max";
+                                size = "Frigate-Destroyer Max";
                             } else if(rows[i].maxJumpMass < 300000000) {
-                                message += ", Battle-Cruiser Max";
+                                size = "Battle-Cruiser Max";
                             }
 
-                            message += ")\n```";
+                            switch(rows[i].in_class) {
+                                case 7:
+                                    embeds.push({ title: "Static **" + rows[i].hole + "** High", color: 0x00ff00, description: size });
+                                break;
+                                case 8:
+                                    embeds.push({ title: "Static **" + rows[i].hole + "** Low", color: 0xdfca1c, description: size });
+                                break;
+                                case 9:
+                                    embeds.push({ title: "Static **" + rows[i].hole + "** Nullsec", color: 0xff0000, description: size });
+                                break;
+                                case 12:
+                                    embeds.push({ title: "Static **" + rows[i].hole + "** Thera", color: 0x0000ff, description: size });
+                                break;
+                                default:
+                                    embeds.push({ title: "Static **" + rows[i].hole + "** C" + rows[i].in_class, color: 0xffffff, description: size });
+                                break;
+                            }
                         }
 
-                        bot.sendMessage({ to: channelID, message: message + "\n" });
+                        bot.sendMessage({ to: channelID, embed: { title: title, description: message } });
+
+                        setTimeout(function(){
+                           for (var i = 0; i < embeds.length; i++) {
+                                bot.sendMessage({ to: channelID, embed: embeds[i] });
+                            } 
+                        }, 500);
                     });
                 }
               });
