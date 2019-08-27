@@ -342,14 +342,14 @@ function search(forString, channelID, guildID, userID) {
                             for (var i = 0; i < rows.length; i++) {
                                 var embed = {}
 
-                                var ships = "https://wiki.eveuniversity.org/images/7/7c/Isis_capital.png"
+                                var ships = "https://i.imgur.com/mo7GyKz.png"
 
                                 if(rows[i].maxJumpMass < 20000000) {
-                                    ships = "https://wiki.eveuniversity.org/images/a/ab/Isis_destroyer.png"
+                                    ships = "https://i.imgur.com/ANpxhrg.png"
                                 } else if(rows[i].maxJumpMass < 300000000) {
-                                    ships = "https://wiki.eveuniversity.org/images/6/65/Isis_battlecruiser.png"
+                                    ships = "https://i.imgur.com/Y7Oh9eP.png"
                                 } else if(rows[i].maxJumpMass < 1000000000) {
-                                    ships = "https://wiki.eveuniversity.org/images/e/eb/Isis_battleship.png"
+                                    ships = "https://i.imgur.com/ZNSylzj.png"
                                 }
 
                                 switch(rows[i].in_class) {
