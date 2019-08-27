@@ -382,39 +382,43 @@ function search(forString, channelID, guildID, userID) {
 
                                 if(response && response.id) {
                                     bot.addReaction({ channelID: channelID, messageID: response.id, reaction: "💥" }, function() {
-                                        bot.addReaction({ channelID: channelID, messageID: response.id, reaction: "📒" }, function() {
-                                            bot.addReaction({ channelID: channelID, messageID: response.id, reaction: "💬" }, function() {
-                                                trackMessage(response.id, channelID, function(e, message) {
-                                                    if(!message.reactions) return
+                                        setTimeout(function() {
+                                            bot.addReaction({ channelID: channelID, messageID: response.id, reaction: "📒" }, function() {
+                                                setTimeout(function() {
+                                                    bot.addReaction({ channelID: channelID, messageID: response.id, reaction: "💬" }, function() {
+                                                        trackMessage(response.id, channelID, function(e, message) {
+                                                            if(!message.reactions) return
 
-                                                    for (var i = 0; i < message.reactions.length; i++) {
-                                                        const reaction = message.reactions[i]
+                                                            for (var i = 0; i < message.reactions.length; i++) {
+                                                                const reaction = message.reactions[i]
 
-                                                        if(reaction.emoji.name === "💥" && reaction.count > 1) {
-                                                            bot.removeReaction({ channelID: channelID, messageID: response.id, reaction: "💥" })
+                                                                if(reaction.emoji.name === "💥" && reaction.count > 1) {
+                                                                    bot.removeReaction({ channelID: channelID, messageID: response.id, reaction: "💥" })
 
-                                                            if(system.effect) {
-                                                                search([system.effect.split(" ")[0], system.class], channelID, guildID, userID)
+                                                                    if(system.effect) {
+                                                                        search([system.effect.split(" ")[0], system.class], channelID, guildID, userID)
+                                                                    }
+                                                                }
+
+                                                                if(reaction.emoji.name === "📒" && reaction.count > 1) {
+                                                                    bot.removeReaction({ channelID: channelID, messageID: response.id, reaction: "📒" })
+
+                                                                    if(system.effect) {
+                                                                        comments(system.system, channelID, guildID, userID, system.system)
+                                                                    }
+                                                                }
+
+                                                                if(reaction.emoji.name === "💬" && reaction.count > 1) {
+                                                                    bot.removeReaction({ channelID: channelID, messageID: response.id, reaction: "💬" })
+
+                                                                    waitForComment(system.system, channelID, guildID, userID)
+                                                                }
                                                             }
-                                                        }
-
-                                                        if(reaction.emoji.name === "📒" && reaction.count > 1) {
-                                                            bot.removeReaction({ channelID: channelID, messageID: response.id, reaction: "📒" })
-
-                                                            if(system.effect) {
-                                                                comments(system.system, channelID, guildID, userID, system.system)
-                                                            }
-                                                        }
-
-                                                        if(reaction.emoji.name === "💬" && reaction.count > 1) {
-                                                            bot.removeReaction({ channelID: channelID, messageID: response.id, reaction: "💬" })
-
-                                                            waitForComment(system.system, channelID, guildID, userID)
-                                                        }
-                                                    }
-                                                })
+                                                        })
+                                                    })
+                                                }, 500)
                                             })
-                                        })
+                                        }, 500)
                                     })
                                 }
                             })
