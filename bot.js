@@ -378,8 +378,8 @@ function search(forString, channelID, guildID, userID) {
                             }
 
                             db.all('SELECT COUNT(*) FROM comments WHERE system = \'' + system.system + '\'', (err, rows) => {
-                                const comments = rows[0]["COUNT(*)"]
-                                if(comments > 0) fields.push({ name: "Comments", value: comments, inline: true })
+                                const comments_amount = rows[0]["COUNT(*)"]
+                                if(comments_amount > 0) fields.push({ name: "Comments", value: comments_amount, inline: true })
 
                                 bot.sendMessage({ to: channelID, embed: { title: title, fields: fields, url: "http://anoik.is/systems/" + system.system } }, function(error, response) {
                                     for (var i = 0; i < embeds.length; i++) {
