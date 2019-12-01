@@ -1,9 +1,9 @@
 {
-	"name": "wh-bot",
-	"version": "1.0.0",
-	"description": "WHBot",
-	"main": "bot.js",
-	"author": "Alek Sai",
+	"name": "helios-bot",
+	"version": "1.1",
+	"description": "Helios Bot",
+	"main": "src/index.js",
+	"author": "Ias Kela",
 	"dependencies": {
 		"discord.io": "github:woor/discord.io#gateway_v6",
 		"sqlite3": "^4.1.0"
