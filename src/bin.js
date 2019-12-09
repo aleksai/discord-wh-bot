@@ -506,7 +506,7 @@ function retrieveNotes(channelID, notes, alot, guildID, userID, system) {
 
     const next = notes[0]
 
-    bot.sendMessage({ to: channelID, embed: { title: next.author, description: next.note } }, function() {
+    bot.sendMessage({ to: channelID, embed: { title: next.author, description: next.comment } }, function() {
         notes.shift()
 
         retrieveNotes(channelID, notes, alot, guildID, userID, system)
