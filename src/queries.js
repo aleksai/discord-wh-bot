@@ -1,7 +1,7 @@
 module.exports = {
 
 	insertWait: 'INSERT INTO waits VALUES (?, ?, ?, ?, ?)',
-	insertComment: 'INSERT INTO comments VALUES (?, ?, ?, ?, ?)',
+	insertNote: 'INSERT INTO comments VALUES (?, ?, ?, ?, ?)',
 
 	getWaits: function(userID, channelID) {
 		return 'SELECT type, system, guild_id FROM waits WHERE user_id = "' + userID + '" AND channel_id = "' + channelID + '"'

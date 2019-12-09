@@ -438,8 +438,6 @@ function zKillboard(solarsystemID, channelID) {
         const last_month = data.months[keys[keys.length - 1]]
         const top_corporations = data["topLists"][1]["values"]
 
-        console.log(top_corporations)
-
         var fields = []
 
         for (var i = 0; i < Math.min(3, top_corporations.length); i++) {
