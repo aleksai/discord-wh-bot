@@ -1,1 +1,84 @@
-index.html
+<style>
+	* {
+		box-sizing: border-box;
+	}
+
+	body {
+		font-family: monospace;
+		font-size: 16px;
+		background-image: url(/helios.jpg);
+		background-size: cover;
+	}
+
+	a {
+		color: #9BB4A9;
+
+		height: 40px;
+
+		border-width: 1px;
+		border-style: solid;
+		border-radius: 5px;
+
+		padding: 10px;
+		margin-top: 5px;
+
+		display: inline-block;
+
+		text-decoration: none;
+
+		font-weight: 700;
+	}
+
+	a:hover {
+		background-color: #F5FFFB;
+	}
+
+	.invite {
+		font-size: 14px;
+		margin-left: 14px;
+
+		position: relative;
+		top: -6px;
+	}
+
+	.whitebox {
+		background-color: white;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		margin-top: -250px;
+		margin-left: -350px; 
+		width: 700px;
+		height: 500px;
+		border-radius: 10px;
+		padding: 10px 40px
+	}
+</style>
+
+<title>Helios</title>
+
+<body>
+	<div class="whitebox">
+		<!-- CONTENT -->
+		<h1 style="margin-bottom: -3px">Helios 1.1<a class="invite" href="https://discordapp.com/api/oauth2/authorize?client_id=612975282936086543&scope=bot&permissions=0">Invite to your server</a></h1>
+		<br>
+		Helios — W-space information bot for Discord.
+		<br><br><br>
+		<b>Manual mode:</b>
+		<br><br>
+		!wh J123454
+		<br>
+		!wh E545
+		<br><br>
+		In private conversation with Helios bot you can even just:
+		<br><br>
+		123454
+		<br>
+		545
+		<br><br>
+		<b>Auto mode:</b>
+		<br><br>
+		Send <b>enable</b> to bot in private conversation, proceed a link and login your character through EVE ESI API and bot will send you short messages everytime you travel between WH systems. Send <b>disable</b> to log your character out. Send <b>mute</b> and <b>unmute</b> to control these messages.
+		<!-- /CONTENT -->
+	</div>
+</body>

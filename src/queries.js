@@ -13,6 +13,8 @@ module.exports = {
 		return 'UPDATE char_esi_auths SET access_token = ?, refresh_token = ?, scope = ?, issued_at = ' + Date.now() + ' WHERE id = ?'
 	},
 
+	updateCharEsiAuths: 'UPDATE char_esi_auths SET mute = ? WHERE user_id = ? AND channel_id = ?',
+
 	getCharEsiAuth: function(userID, channelID, characterID) {
 		return 'SELECT * FROM char_esi_auths WHERE user_id = "' + userID + '" AND channel_id = "' + channelID + '" AND character_id = "' + characterID + '"'
 	},
@@ -30,7 +32,7 @@ module.exports = {
 	},
 
 	getAllCharEsiAuths: function(page, offset) {
-		return 'SELECT id, character_id, character_name, access_token, refresh_token, channel_id, user_id FROM char_esi_auths LIMIT ' + page + ' OFFSET ' + offset
+		return 'SELECT id, character_id, character_name, access_token, refresh_token, channel_id, user_id, mute FROM char_esi_auths LIMIT ' + page + ' OFFSET ' + offset
 	},
 
 	getCharEnableDisable: function(userID, channelID, token) {

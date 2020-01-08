@@ -5,6 +5,7 @@ const queries = require('./queries')
 
 const zkillboard = require('./zkillboard')
 const esi = require('./esi')
+const web = require('./web')
 
 var bot
 var db
@@ -81,6 +82,12 @@ function handleMessage(user, userID, channelID, message, evt) {
                             case 'dis':
                                 startCharDisable(channelID, userID)
                             break
+                            case 'mute':
+                                muteAutomode(channelID, userID)
+                            break
+                            case 'unmute':
+                                unmuteAutomode(channelID, userID)
+                            break
                             default:
                                 var args = message.split(' ')
 
@@ -103,14 +110,12 @@ function handleMessage(user, userID, channelID, message, evt) {
 
 // Main search algorithm
 
-function search(forString, channelID, guildID, userID, silent) {
-    silent = silent || false
+function search(forString, channelID, guildID, userID, automode) {
+    automode = automode || false
 
     var wh = forString.length > 0 ? forString[0].toString().toUpperCase() : ''
     var second = forString.length > 1 ? forString[1].toString().toUpperCase() : ''
     var third = forString.length > 2 ? forString[2].toString().toUpperCase() : ''
-
-    console.log(forString, channelID, guildID, userID, silent)
 
     var mode = 'NAN'
     var whid = false
@@ -145,8 +150,6 @@ function search(forString, channelID, guildID, userID, silent) {
             effectclass = parseInt(third.replace('C', ''))
         }
     }
-
-    console.log(mode, whid)
 
     switch(mode) {
 
@@ -288,7 +291,7 @@ function search(forString, channelID, guildID, userID, silent) {
         case 'SYS':
             db.serialize(() => { db.all(queries.getSystem(whid, wh), (err, rows) => {
                 if (err || rows.length === 0) {
-                    if(!silent) bot.sendMessage({ to: channelID, message: 'Not found' })
+                    if(!automode) bot.sendMessage({ to: channelID, message: 'Not found' })
                 } else {
                     let system = rows[0]
 
@@ -304,6 +307,7 @@ function search(forString, channelID, guildID, userID, silent) {
                         // Embed statics information
 
                         var embeds = []
+                        var statics = ''
 
                         for (var i = 0; i < rows.length; i++) {
                             var embed = {}
@@ -321,18 +325,23 @@ function search(forString, channelID, guildID, userID, silent) {
                             switch(rows[i].in_class) {
                                 case 7:
                                     embed = { title: '**' + rows[i].hole + '** (High)', color: 0x00ff00 }
+                                    statics += (statics.length > 0 ? ', ' : '') + '**H** (' + rows[i].hole + ')'
                                 break
                                 case 8:
                                     embed = { title: '**' + rows[i].hole + '** (Low)', color: 0xdfca1c }
+                                    statics += (statics.length > 0 ? ', ' : '') + '**L** (' + rows[i].hole + ')'
                                 break
                                 case 9:
                                     embed = { title: '**' + rows[i].hole + '** (Nullsec)', color: 0xff0000 }
+                                    statics += (statics.length > 0 ? ', ' : '') + '**N** (' + rows[i].hole + ')'
                                 break
                                 case 12:
                                     embed = { title: '**' + rows[i].hole + '** (Thera)', color: 0x0000ff }
+                                    statics += (statics.length > 0 ? ', ' : '') + '**T** (' + rows[i].hole + ')'
                                 break
                                 default:
                                     embed = { title: '**' + rows[i].hole + '** (C' + rows[i].in_class + ')', color: 0xffffff }
+                                    statics += (statics.length > 0 ? ', ' : '') + '**C' + rows[i].in_class + '** (' + rows[i].hole + ')'
                                 break
                             }
 
@@ -340,6 +349,8 @@ function search(forString, channelID, guildID, userID, silent) {
 
                             embeds.push(embed)
                         }
+
+                        if(automode) return bot.sendMessage({ to: channelID, tts: true, message: "🛸 " + automode + " **" + system.system + ' — C' + Math.abs(system.class) + '** ' + (system.effect ? system.effect : '') + '\n🚥 ' + statics })
 
                         // Get notes count
 
@@ -567,7 +578,7 @@ function enableChar(req, res) {
     db.serialize(() => { db.all(queries.getCharEnableDisable(req.params.userId, req.params.channelId, req.params.token), (err, rows) => {
         if(!rows.length) return res.redirect('/')
         
-        res.send('<a href="https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=' + config.site + '%2Fcallback&client_id=' + config.esi_client_id + '&scope=' + config.esi_scope.join("%20") + '&state=' + req.params.token + '">Login your EVE Character</a>')
+        web.send(res, '<h1>Enable new character:</h1>Click this button to be redirected to EVE ESI authorization page:<br><br><a href="https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=' + config.site + '%2Fcallback&client_id=' + config.esi_client_id + '&scope=' + config.esi_scope.join("%20") + '&state=' + req.params.token + '">Login your EVE Character</a>')
     })})
 }
 
@@ -576,7 +587,7 @@ function callbackChar(req, res) {
     const token = req.query.state
 
     function success(channel_id, character_name) {
-        res.send("Success, you can close this window.")
+        web.send(res, "<h1>Success, you can close this window.</h1>If you seeing this message your character is enabled.")
 
         bot.sendMessage({ to: channel_id, embed: { title: 'Character enabled: ' + character_name } })
     }
@@ -587,7 +598,7 @@ function callbackChar(req, res) {
         const enDis = rows[0]
 
         esi.exchangeCode(code, config, function(body) {
-            if(!body) return res.status(403).send('Failure, try later.')
+            if(!body) return web.send(res.status(403), "<h1>Failure, try later</h1>Something went wrong for now, try one more time a bit later please.")
 
             db.serialize(() => { db.all(queries.getCharEsiAuth(enDis.user_id, enDis.channel_id, body.character_id), (err, rows) => {
                 db.run(queries.removeCharEnableDisableByToken(token), function() {
@@ -611,15 +622,15 @@ function disableChar(req, res) {
         if(rows.length) {
             db.all(queries.getCharEsiAuths(req.params.userId, req.params.channelId), (err, rows) => {
                 if(rows.length) {
-                    var html = "Choose character to disable:<br>"
+                    var html = "<h1>Choose a character to disable:</h1>"
 
                     for (var i = 0; i < rows.length; i++) {
                         html += '<br><a href="' + req.params.token + '/' + rows[i].id + '">' + rows[i].character_name + '</a>'
                     }
 
-                    res.send(html)
+                    web.send(res, html)
                 } else {
-                    res.send("No enabled characters found")
+                    web.send(res, "<h1>No enabled characters found</h1> You can add one by typing <b>enable</b> to bot in private conversation.")
                 }
             })
 
@@ -634,18 +645,36 @@ function disableCharFinish(req, res) {
     db.serialize(() => { db.all(queries.getCharEnableDisable(req.params.userId, req.params.channelId, req.params.token), (err, rows) => {
         if(!rows.length) return res.redirect('/')
 
-        db.all(queries.getCharEsiAuthById(req.params.userId, req.params.channelId, req.params.characterId), (err, rows) => {console.log(rows)
+        db.all(queries.getCharEsiAuthById(req.params.userId, req.params.channelId, req.params.characterId), (err, rows) => {
             if(!rows.length) return res.redirect('/')
 
             db.run(queries.removeCharEnableDisableByToken(req.params.token), function() {
                 db.run(queries.removeCharEsiAuthById(req.params.userId, req.params.channelId, req.params.characterId), function () {
-                    res.send("Success, you can close this window.")
+                    web.send(res, "<h1>Success, you can close this window.</h1>If you seeing this message your character is disabled.")
 
                     bot.sendMessage({ to: req.params.channelId, embed: { title: 'Character disabled: ' + rows[0].character_name } })
                 })
             })
         })        
     })})
+}
+
+// Mute
+
+function muteAutomode(channelID, userID) {
+    db.serialize(() => {
+        db.run(queries.updateCharEsiAuths, 1, userID, channelID, function() {
+            bot.sendMessage({ to: channelID, embed: { title: 'Automode is now muted' } })
+        })
+    })
+}
+
+function unmuteAutomode(channelID, userID) {
+    db.serialize(() => {
+        db.run(queries.updateCharEsiAuths, 0, userID, channelID, function() {
+            bot.sendMessage({ to: channelID, embed: { title: 'Automode is not muted right now' } })
+        })
+    })
 }
 
 // Module export
