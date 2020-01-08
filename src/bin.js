@@ -1,6 +1,10 @@
+const request = require('request')
+const base64url = require('base64-url')
+
 const queries = require('./queries')
 
 const zkillboard = require('./zkillboard')
+const esi = require('./esi')
 
 var bot
 var db
@@ -22,7 +26,7 @@ function handleMessage(user, userID, channelID, message, evt) {
 
             args = args.splice(1)
 
-            switch(cmd) {
+            switch(cmd.toLowerCase()) {
                 case 'helios':
                     bot.sendMessage({ to: channelID, embed: { title: 'Hi, I\'m Helios, Pong.', color: 0xffffff } })
                 break
@@ -39,7 +43,7 @@ function handleMessage(user, userID, channelID, message, evt) {
         db.serialize(() => { db.all(queries.getWaits(userID, channelID), (err, rows) => {
             if (!err) {
 
-                // If there are some requests waits
+                // If there are some requests waiting
 
                 if(rows.length) {
                     const wait = rows[0]
@@ -58,15 +62,37 @@ function handleMessage(user, userID, channelID, message, evt) {
                     // If there's no waits and Helios in private conversation, we can parse something without ! sign:
 
                     if(!evt.d.guild_id) {
-                        var args = message.split(' ')
+                        switch(message.toLowerCase()) {
+                            case 'addchar':
+                            case 'enablechar':
+                            case 'enchar':
+                            case 'add':
+                            case 'enable':
+                            case 'en':
+                                startCharEnable(channelID, userID)
+                            break
+                            case 'removechar':
+                            case 'rmchar':
+                            case 'remove':
+                            case 'rm':
+                            case 'disablechar':
+                            case 'dischar':
+                            case 'disable':
+                            case 'dis':
+                                startCharDisable(channelID, userID)
+                            break
+                            default:
+                                var args = message.split(' ')
 
-                        var sysId = message.match(/\/\/([0-9]{8})">/g)
-                        if(sysId && sysId.length) sysId = sysId[0].match(/[0-9]{8}/g)
+                                var sysId = message.match(/\/\/([0-9]{8})">/g)
+                                if(sysId && sysId.length) sysId = sysId[0].match(/[0-9]{8}/g)
 
-                        if(sysId) {
-                            search([sysId], channelID, evt.d.guild_id, userID)
-                        } else if(args.length) {
-                            search(args, channelID, evt.d.guild_id, userID)
+                                if(sysId) {
+                                    search([sysId], channelID, evt.d.guild_id, userID)
+                                } else if(args.length) {
+                                    search(args, channelID, evt.d.guild_id, userID)
+                                }
+                            break
                         }
                     }
                 }
@@ -77,10 +103,14 @@ function handleMessage(user, userID, channelID, message, evt) {
 
 // Main search algorithm
 
-function search(forString, channelID, guildID, userID) {
+function search(forString, channelID, guildID, userID, silent) {
+    silent = silent || false
+
     var wh = forString.length > 0 ? forString[0].toString().toUpperCase() : ''
     var second = forString.length > 1 ? forString[1].toString().toUpperCase() : ''
     var third = forString.length > 2 ? forString[2].toString().toUpperCase() : ''
+
+    console.log(forString, channelID, guildID, userID, silent)
 
     var mode = 'NAN'
     var whid = false
@@ -115,6 +145,8 @@ function search(forString, channelID, guildID, userID) {
             effectclass = parseInt(third.replace('C', ''))
         }
     }
+
+    console.log(mode, whid)
 
     switch(mode) {
 
@@ -256,7 +288,7 @@ function search(forString, channelID, guildID, userID) {
         case 'SYS':
             db.serialize(() => { db.all(queries.getSystem(whid, wh), (err, rows) => {
                 if (err || rows.length === 0) {
-                    bot.sendMessage({ to: channelID, message: 'Not found' })
+                    if(!silent) bot.sendMessage({ to: channelID, message: 'Not found' })
                 } else {
                     let system = rows[0]
 
@@ -513,6 +545,109 @@ function retrieveNotes(channelID, notes, alot, guildID, userID, system) {
     })
 }
 
+// ESI Auth
+
+function startCharEnable(channelID, userID) {
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
+    db.serialize(() => { db.run(queries.insertCharEnableDisable, userID, channelID, token, "", function() {
+        bot.sendMessage({ to: channelID, embed: { title: 'Link to enable a new character: ' + config.site + '/enable/' + userID + '/' + channelID + '/' + token } })
+    })})
+}
+
+function startCharDisable(channelID, userID) {
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
+    db.serialize(() => { db.run(queries.insertCharEnableDisable, userID, channelID, token, "", function() {
+        bot.sendMessage({ to: channelID, embed: { title: 'Link to disable one of characters: ' + config.site + '/disable/' + userID + '/' + channelID + '/' + token } })
+    })})
+}
+
+function enableChar(req, res) {
+    db.serialize(() => { db.all(queries.getCharEnableDisable(req.params.userId, req.params.channelId, req.params.token), (err, rows) => {
+        if(!rows.length) return res.redirect('/')
+        
+        res.send('<a href="https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=' + config.site + '%2Fcallback&client_id=' + config.esi_client_id + '&scope=' + config.esi_scope.join("%20") + '&state=' + req.params.token + '">Login your EVE Character</a>')
+    })})
+}
+
+function callbackChar(req, res) {
+    const code = req.query.code
+    const token = req.query.state
+
+    function success(channel_id, character_name) {
+        res.send("Success, you can close this window.")
+
+        bot.sendMessage({ to: channel_id, embed: { title: 'Character enabled: ' + character_name } })
+    }
+
+    db.serialize(() => { db.all(queries.getCharEnableDisableByToken(token), (err, rows) => {
+        if(!rows.length) return res.redirect('/')
+
+        const enDis = rows[0]
+
+        esi.exchangeCode(code, config, function(body) {
+            if(!body) return res.status(403).send('Failure, try later.')
+
+            db.serialize(() => { db.all(queries.getCharEsiAuth(enDis.user_id, enDis.channel_id, body.character_id), (err, rows) => {
+                db.run(queries.removeCharEnableDisableByToken(token), function() {
+                    if(rows.length) {
+                        db.run(queries.updateCharEsiAuth(), body.access_token, body.refresh_token, body.scope.join(","), enDis.id, function() {
+                            success(enDis.channel_id, body.character_name)
+                        })
+                    } else {
+                        db.run(queries.insertCharEsiAuth(), enDis.user_id, enDis.channel_id, body.character_id, body.character_name, body.access_token, body.refresh_token, body.scope.join(","), function() {
+                            success(enDis.channel_id, body.character_name)
+                        })
+                    }
+                })
+            })})
+        })
+    })})
+}
+
+function disableChar(req, res) {
+    db.serialize(() => { db.all(queries.getCharEnableDisable(req.params.userId, req.params.channelId, req.params.token), (err, rows) => {
+        if(rows.length) {
+            db.all(queries.getCharEsiAuths(req.params.userId, req.params.channelId), (err, rows) => {
+                if(rows.length) {
+                    var html = "Choose character to disable:<br>"
+
+                    for (var i = 0; i < rows.length; i++) {
+                        html += '<br><a href="' + req.params.token + '/' + rows[i].id + '">' + rows[i].character_name + '</a>'
+                    }
+
+                    res.send(html)
+                } else {
+                    res.send("No enabled characters found")
+                }
+            })
+
+            return
+        }
+
+        res.redirect('/')
+    })})
+}
+
+function disableCharFinish(req, res) {
+    db.serialize(() => { db.all(queries.getCharEnableDisable(req.params.userId, req.params.channelId, req.params.token), (err, rows) => {
+        if(!rows.length) return res.redirect('/')
+
+        db.all(queries.getCharEsiAuthById(req.params.userId, req.params.channelId, req.params.characterId), (err, rows) => {console.log(rows)
+            if(!rows.length) return res.redirect('/')
+
+            db.run(queries.removeCharEnableDisableByToken(req.params.token), function() {
+                db.run(queries.removeCharEsiAuthById(req.params.userId, req.params.channelId, req.params.characterId), function () {
+                    res.send("Success, you can close this window.")
+
+                    bot.sendMessage({ to: req.params.channelId, embed: { title: 'Character disabled: ' + rows[0].character_name } })
+                })
+            })
+        })        
+    })})
+}
+
 // Module export
 
 module.exports = function(_bot, _db, _config) {
@@ -521,6 +656,13 @@ module.exports = function(_bot, _db, _config) {
     config = _config
 
     return {
-        handleMessage: handleMessage
+        handleMessage: handleMessage,
+
+        search: search,
+
+        enableChar: enableChar,
+        disableChar: disableChar,
+        disableCharFinish: disableCharFinish,
+        callbackChar: callbackChar
     }
 }

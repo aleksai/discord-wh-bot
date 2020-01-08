@@ -5,7 +5,10 @@
 	"main": "src/index.js",
 	"author": "Ias Kela",
 	"dependencies": {
+		"base64-url": "^2.3.3",
 		"discord.io": "github:woor/discord.io#gateway_v6",
+		"express": "^4.17.1",
+		"jsonwebtoken": "^8.5.1",
 		"sqlite3": "^4.1.0"
 	}
 }
