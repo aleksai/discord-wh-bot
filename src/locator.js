@@ -4,7 +4,7 @@ const queries = require("./queries")
 const locator_debug = true
 const page = 100
 const loop_interval = 5
-const offline_skip = 1
+const offline_skip = 2
 
 var loop_index = 0
 var iterating_offset = 0

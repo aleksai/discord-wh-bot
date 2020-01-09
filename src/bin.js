@@ -561,7 +561,7 @@ function retrieveNotes(channelID, notes, alot, guildID, userID, system) {
 function startCharEnable(channelID, userID) {
     const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
-    db.serialize(() => { db.run(queries.insertCharEnableDisable, userID, channelID, token, "", function() {
+    db.serialize(() => { db.run(queries.insertCharEnableDisable, userID, channelID, token, function() {
         bot.sendMessage({ to: channelID, embed: { title: 'Link to enable a new character: ' + config.site + '/enable/' + userID + '/' + channelID + '/' + token } })
     })})
 }
@@ -569,7 +569,7 @@ function startCharEnable(channelID, userID) {
 function startCharDisable(channelID, userID) {
     const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
-    db.serialize(() => { db.run(queries.insertCharEnableDisable, userID, channelID, token, "", function() {
+    db.serialize(() => { db.run(queries.insertCharEnableDisable, userID, channelID, token, function() {
         bot.sendMessage({ to: channelID, embed: { title: 'Link to disable one of characters: ' + config.site + '/disable/' + userID + '/' + channelID + '/' + token } })
     })})
 }

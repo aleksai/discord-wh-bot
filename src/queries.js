@@ -3,7 +3,7 @@ module.exports = {
 	insertWait: 'INSERT INTO waits VALUES (?, ?, ?, ?, ?)',
 	insertNote: 'INSERT INTO comments VALUES (?, ?, ?, ?, ?)',
 
-	insertCharEnableDisable: 'INSERT INTO char_enables_disables VALUES (?, ?, ?, ?)',
+	insertCharEnableDisable: 'INSERT INTO char_enables_disables VALUES (?, ?, ?)',
 
 	insertCharEsiAuth: function() {
 		return 'INSERT INTO char_esi_auths(user_id, channel_id, character_id, character_name, access_token, refresh_token, scope, issued_at) VALUES (?, ?, ?, ?, ?, ?, ?, ' + Date.now() + ')'
