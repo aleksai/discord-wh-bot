@@ -16,6 +16,22 @@ var db
 var config
 var search
 
+function refreshTokenAndRecheckChar(char) {
+	if(locator_debug) console.log(char.character_name, "refreshing...")
+
+	return esi.refreshToken(char.refresh_token, config, function(body) {
+		if(!body) return
+
+        db.serialize(() => { db.run(queries.updateCharEsiAuth(), body.access_token, body.refresh_token, body.scope.join(","), char.id, function() {
+            if(locator_debug) console.log(char.character_name, "refreshed")
+
+            char.access_token = body.access_token
+
+            checkChar(char)
+        })})
+	})
+}
+
 function checkChar(char) {
 	if(char.mute) return iterate()
 
@@ -31,7 +47,7 @@ function checkChar(char) {
 		}
 
 		esi.get(char.character_id, char.access_token, 'online', function(online) {
-			if(!online) {
+			if(!online || online.charAt(0) === '<') {
 				return setTimeout(function() {
 					checkChar(char)
 				}, 1000)
@@ -41,27 +57,21 @@ function checkChar(char) {
 
 			if(locator_debug) console.log(online)
 
-			if(online.error && online.error === "token is expired") {
-				if(locator_debug) console.log(char.character_name, "refreshing...")
-
-				return esi.refreshToken(char.refresh_token, config, function(body) {
-					if(!body) return
-
-		            db.serialize(() => { db.run(queries.updateCharEsiAuth(), body.access_token, body.refresh_token, body.scope.join(","), char.id, function() {
-	                    if(locator_debug) console.log(char.character_name, "refreshed")
-
-	                    char.access_token = body.access_token
-
-	                    checkChar(char)
-	                })})
-				})
-			}
+			if(online.error && online.error === "token is expired") return refreshTokenAndRecheckChar(char)
 
 			if(online.online) {
 				esi.get(char.character_id, char.access_token, 'location', function(location) {
+					if(!location || location.charAt(0) === '<') {
+						return setTimeout(function() {
+							checkChar(char)
+						}, 1000)
+					}
+			
 					location = JSON.parse(location)
 
 					if(locator_debug) console.log(location)
+
+					if(location.error && location.error === "token is expired") return refreshTokenAndRecheckChar(char)
 
 					updateCharLocation(char.id, current_location ? true : false, location.solar_system_id, function() {
 						const new_location = location.solar_system_id.toString()
