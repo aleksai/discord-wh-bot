@@ -350,7 +350,7 @@ function search(forString, channelID, guildID, userID, automode) {
                             embeds.push(embed)
                         }
 
-                        if(automode) return bot.sendMessage({ to: channelID, tts: true, message: "🛸 " + automode + " **" + system.system + ' — C' + Math.abs(system.class) + '** ' + (system.effect ? system.effect : '') + '\n🚥 ' + statics })
+                        if(automode) return bot.sendMessage({ to: channelID, tts: true, message: ":cyclone: " + automode + " **" + system.system + ' — C' + Math.abs(system.class) + '** ' + (system.effect ? system.effect : '') + '\n🚥 ' + statics })
 
                         // Get notes count
 

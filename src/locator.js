@@ -1,7 +1,7 @@
 const esi = require("./esi")
 const queries = require("./queries")
 
-const locator_debug = true
+const locator_debug = false
 const page = 100
 const loop_interval = 5
 const offline_skip = 2
